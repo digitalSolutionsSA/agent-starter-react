@@ -6,7 +6,6 @@ import { RoomConfiguration } from '@livekit/protocol';
 export const runtime = 'nodejs';
 export const revalidate = 0;
 
-// <-- export it so hooks can import the type
 export type ConnectionDetails = {
   serverUrl: string;
   roomName: string;
@@ -20,6 +19,23 @@ function requireEnv(name: string): string {
   return v;
 }
 
+type BodyShape = {
+  room_config?: { agents?: { agent_name?: string }[] };
+};
+
+function parseBodyMaybe(json: unknown): BodyShape {
+  if (
+    json &&
+    typeof json === 'object' &&
+    'room_config' in json &&
+    json.room_config &&
+    typeof (json as any).room_config === 'object'
+  ) {
+    return json as BodyShape;
+  }
+  return {};
+}
+
 async function handle(req: Request) {
   try {
     const LIVEKIT_URL = requireEnv('LIVEKIT_URL');
@@ -29,13 +45,14 @@ async function handle(req: Request) {
     let agentName: string | undefined;
 
     if (req.method === 'POST') {
-      let body: any = {};
+      let bodyUnknown: unknown = {};
       try {
-        body = await req.json();
+        bodyUnknown = await req.json();
       } catch {
-        body = {};
+        // ignore bad/empty JSON
       }
-      agentName = body?.room_config?.agents?.[0]?.agent_name;
+      const body = parseBodyMaybe(bodyUnknown);
+      agentName = body.room_config?.agents?.[0]?.agent_name;
     } else {
       const url = new URL(req.url);
       agentName = url.searchParams.get('agentName') ?? undefined;
@@ -61,9 +78,10 @@ async function handle(req: Request) {
     };
 
     return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store' } });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { error: 'connection-details-failed', message: String(err?.message || err) },
+      { error: 'connection-details-failed', message },
       { status: 500 }
     );
   }
