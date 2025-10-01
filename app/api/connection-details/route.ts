@@ -3,10 +3,11 @@ import { NextResponse } from 'next/server';
 import { AccessToken, type AccessTokenOptions, type VideoGrant } from 'livekit-server-sdk';
 import { RoomConfiguration } from '@livekit/protocol';
 
-export const runtime = 'nodejs';     // ensure Node on Netlify
-export const revalidate = 0;         // no caching
+export const runtime = 'nodejs';
+export const revalidate = 0;
 
-type ConnectionDetails = {
+// <-- export it so hooks can import the type
+export type ConnectionDetails = {
   serverUrl: string;
   roomName: string;
   participantName: string;
@@ -21,7 +22,6 @@ function requireEnv(name: string): string {
 
 async function handle(req: Request) {
   try {
-    // envs (fail fast with clear message)
     const LIVEKIT_URL = requireEnv('LIVEKIT_URL');
     const API_KEY = requireEnv('LIVEKIT_API_KEY');
     const API_SECRET = requireEnv('LIVEKIT_API_SECRET');
@@ -29,7 +29,6 @@ async function handle(req: Request) {
     let agentName: string | undefined;
 
     if (req.method === 'POST') {
-      // tolerate empty/invalid JSON without nuking the route
       let body: any = {};
       try {
         body = await req.json();
@@ -38,12 +37,10 @@ async function handle(req: Request) {
       }
       agentName = body?.room_config?.agents?.[0]?.agent_name;
     } else {
-      // GET: allow query ?agentName=foo
       const url = new URL(req.url);
       agentName = url.searchParams.get('agentName') ?? undefined;
     }
 
-    // Generate participant token
     const participantName = 'user';
     const participantIdentity = `voice_assistant_user_${Math.floor(Math.random() * 10_000)}`;
     const roomName = `voice_assistant_room_${Math.floor(Math.random() * 10_000)}`;
@@ -65,7 +62,6 @@ async function handle(req: Request) {
 
     return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store' } });
   } catch (err: any) {
-    // ALWAYS return JSON so client .json() never dies
     return NextResponse.json(
       { error: 'connection-details-failed', message: String(err?.message || err) },
       { status: 500 }
@@ -88,10 +84,7 @@ function createParticipantToken(
   apiKey: string,
   apiSecret: string
 ): Promise<string> {
-  const at = new AccessToken(apiKey, apiSecret, {
-    ...userInfo,
-    ttl: '15m',
-  });
+  const at = new AccessToken(apiKey, apiSecret, { ...userInfo, ttl: '15m' });
 
   const grant: VideoGrant = {
     room: roomName,
@@ -103,9 +96,7 @@ function createParticipantToken(
   at.addGrant(grant);
 
   if (agentName) {
-    at.roomConfig = new RoomConfiguration({
-      agents: [{ agentName }],
-    });
+    at.roomConfig = new RoomConfiguration({ agents: [{ agentName }] });
   }
 
   return at.toJwt();
