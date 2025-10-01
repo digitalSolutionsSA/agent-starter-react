@@ -19,22 +19,23 @@ function requireEnv(name: string): string {
   return v;
 }
 
-type BodyShape = {
-  room_config?: { agents?: { agent_name?: string }[] };
-};
-
-function parseBodyMaybe(json: unknown): BodyShape {
-  if (
-    json &&
-    typeof json === 'object' &&
-    'room_config' in json &&
-    json.room_config &&
-    typeof (json as any).room_config === 'object'
-  ) {
-    return json as BodyShape;
-  }
-  return {};
+/* ---------- tiny type guards, no `any` ---------- */
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null;
 }
+
+function getAgentNameFromBody(body: unknown): string | undefined {
+  if (!isRecord(body)) return undefined;
+  const rc = body['room_config'];
+  if (!isRecord(rc)) return undefined;
+  const agents = rc['agents'];
+  if (!Array.isArray(agents) || agents.length === 0) return undefined;
+  const first = agents[0];
+  if (!isRecord(first)) return undefined;
+  const name = first['agent_name'];
+  return typeof name === 'string' ? name : undefined;
+}
+/* ------------------------------------------------ */
 
 async function handle(req: Request) {
   try {
@@ -49,10 +50,9 @@ async function handle(req: Request) {
       try {
         bodyUnknown = await req.json();
       } catch {
-        // ignore bad/empty JSON
+        // ignore invalid/empty JSON
       }
-      const body = parseBodyMaybe(bodyUnknown);
-      agentName = body.room_config?.agents?.[0]?.agent_name;
+      agentName = getAgentNameFromBody(bodyUnknown);
     } else {
       const url = new URL(req.url);
       agentName = url.searchParams.get('agentName') ?? undefined;
