@@ -3,14 +3,9 @@ import * as React from 'react';
 import { headers } from 'next/headers';
 import { Tabs } from '@/app/components/Tabs';
 import { Provider } from '@/components/provider';
-// removed unused: cn
 import { getAppConfig } from '@/lib/utils';
 
-export default async function ComponentsLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function ComponentsLayout({ children }: { children: React.ReactNode }) {
   const hdrs = await headers();
   const appConfig = await getAppConfig(hdrs);
 
@@ -22,13 +17,9 @@ export default async function ComponentsLayout({
           A quick start UI overview for the LiveKit Voice Assistant.
         </p>
       </header>
-
       <Tabs />
-
       <Provider appConfig={appConfig}>
-        <main className="flex w-full flex-1 flex-col items-stretch gap-8">
-          {children}
-        </main>
+        <main className="flex w-full flex-1 flex-col items-stretch gap-8">{children}</main>
       </Provider>
     </div>
   );

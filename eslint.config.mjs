@@ -10,13 +10,20 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  // Keep the useful Next/TS/import configs
   ...compat.extends(
     'next/core-web-vitals',
     'next/typescript',
-    'plugin:import/recommended',
-    'prettier',
-    'plugin:prettier/recommended'
+    'plugin:import/recommended'
+    // intentionally NOT extending 'prettier' or 'plugin:prettier/recommended'
   ),
+
+  // Final override layer: explicitly disable Prettier-as-ESLint errors
+  {
+    rules: {
+      'prettier/prettier': 'off',
+    },
+  },
 ];
 
 export default eslintConfig;
