@@ -1,6 +1,9 @@
 import type { AppConfig } from './lib/types';
 
 export const APP_CONFIG_DEFAULTS: AppConfig = {
+  companyName: 'DSSA',
+  pageTitle: 'DAVE',
+  pageDescription: 'Assistant, Friend and Teacher',
 
   supportsChatInput: true,
   supportsVideoInput: true,
